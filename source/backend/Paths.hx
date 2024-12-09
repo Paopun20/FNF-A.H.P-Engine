@@ -184,46 +184,46 @@ class Paths
 	}
 
 	public static function cacheBitmap(key:String, ?parentFolder:String = null, ?bitmap:BitmapData, ?allowGPU:Bool = true):FlxGraphic
-	{
-		if (bitmap == null)
 		{
-			var file:String = getPath(key, IMAGE, parentFolder, true);
-			#if MODS_ALLOWED
-			if (FileSystem.exists(file))
-				bitmap = BitmapData.fromFile(file);
-			else #end if (OpenFlAssets.exists(file, IMAGE))
-				bitmap = OpenFlAssets.getBitmapData(file);
-
 			if (bitmap == null)
 			{
-				trace('oh no its returning null NOOOO ($file)');
-				return null;
+				var file:String = getPath(key, IMAGE, parentFolder, true);
+				#if MODS_ALLOWED
+				if (FileSystem.exists(file))
+					bitmap = BitmapData.fromFile(file);
+				else #end if (OpenFlAssets.exists(file, IMAGE))
+					bitmap = OpenFlAssets.getBitmapData(file);
+	
+				if (bitmap == null)
+				{
+					trace('oh no its returning null NOOOO ($file)');
+					return null;
+				}
 			}
-		}
-
-		if (allowGPU && ClientPrefs.data.cacheOnGPU && bitmap.image != null)
-		{
-			bitmap.lock();
-			if (bitmap.__texture == null)
+	
+			if (allowGPU && ClientPrefs.data.cacheOnGPU && bitmap.image != null)
 			{
-				bitmap.image.premultiplied = true;
-				bitmap.getTexture(FlxG.stage.context3D);
+				bitmap.lock();
+				if (bitmap.__texture == null)
+				{
+					bitmap.image.premultiplied = true;
+					bitmap.getTexture(FlxG.stage.context3D);
+				}
+				bitmap.getSurface();
+				bitmap.disposeImage();
+				bitmap.image.data = null;
+				bitmap.image = null;
+				bitmap.readable = true;
 			}
-			bitmap.getSurface();
-			bitmap.disposeImage();
-			bitmap.image.data = null;
-			bitmap.image = null;
-			bitmap.readable = true;
-		}
-
-		var graph:FlxGraphic = FlxGraphic.fromBitmapData(bitmap, false, key);
-		graph.persist = true;
-		graph.destroyOnNoUse = false;
-
-		currentTrackedAssets.set(key, graph);
-		localTrackedAssets.push(key);
-		return graph;
-	}
+	
+			var graph:FlxGraphic = FlxGraphic.fromBitmapData(bitmap, false, key);
+			graph.persist = true;
+			graph.destroyOnNoUse = false;
+	
+			currentTrackedAssets.set(key, graph);
+			localTrackedAssets.push(key);
+			return graph;
+		}		
 
 	inline static public function getTextFromFile(key:String, ?ignoreMods:Bool = false):String
 	{
@@ -237,12 +237,11 @@ class Paths
 
 	inline static public function font(key:String)
 	{
-		var folderKey:String = Language.getFileTranslation('fonts/$key');
 		#if MODS_ALLOWED
-		var file:String = modFolders(folderKey);
+		var file:String = modsFont(key);
 		if(FileSystem.exists(file)) return file;
 		#end
-		return 'assets/$folderKey';
+		return 'assets/fonts/$key';
 	}
 
 	public static function fileExists(key:String, type:AssetType, ?ignoreMods:Bool = false, ?parentFolder:String = null)
@@ -394,6 +393,9 @@ class Paths
 	#if MODS_ALLOWED
 	inline static public function mods(key:String = '')
 		return 'mods/' + key;
+
+	inline static public function modsFont(key:String)
+		return modFolders('fonts/' + key);
 
 	inline static public function modsJson(key:String)
 		return modFolders('data/' + key + '.json');

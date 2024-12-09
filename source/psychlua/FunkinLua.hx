@@ -42,6 +42,7 @@ import flixel.input.keyboard.FlxKey;
 import flixel.input.gamepad.FlxGamepadInputID;
 
 import haxe.Json;
+import ahplua.*;
 
 class FunkinLua {
 	public var lua:State = null;
@@ -60,9 +61,8 @@ class FunkinLua {
 	public function new(scriptName:String) {
 		lua = LuaL.newstate();
 		LuaL.openlibs(lua);
-
-		//trace('Lua version: ' + Lua.version());
-		//trace("LuaJIT version: " + Lua.versionJIT());
+		trace('${'Lua version: ' + Lua.version()} | ${"LuaJIT version: " + Lua.versionJIT()}');
+		trace('Lua file is load: ' + scriptName);
 
 		//LuaL.dostring(lua, CLENSE);
 
@@ -204,9 +204,12 @@ class FunkinLua {
 		set('splashSkin', ClientPrefs.data.splashSkin);
 		set('splashSkinPostfix', NoteSplash.getSplashSkinPostfix());
 		set('splashAlpha', ClientPrefs.data.splashAlpha);
-
+		
 		// build target (windows, mac, linux, etc.)
 		set('buildTarget', LuaUtils.getBuildTarget());
+
+		// Cyber TOOL
+		set('forceDadMiss', PlayState.forceDadMiss);
 
 		//
 		Lua_helper.add_callback(lua, "getRunningScripts", function() {
@@ -1133,8 +1136,8 @@ class FunkinLua {
 		});
 
 		Lua_helper.add_callback(lua, "setObjectCamera", function(obj:String, camera:String = 'game') {
-			var real:FlxBasic = game.getLuaObject(obj);
-			if(real != null) {
+			var real = game.getLuaObject(obj);
+			if(real!=null){
 				real.cameras = [LuaUtils.cameraFromString(camera)];
 				return true;
 			}
@@ -1153,7 +1156,7 @@ class FunkinLua {
 			return false;
 		});
 		Lua_helper.add_callback(lua, "setBlendMode", function(obj:String, blend:String = '') {
-			var real:FlxSprite = game.getLuaObject(obj);
+			var real = game.getLuaObject(obj);
 			if(real != null) {
 				real.blend = LuaUtils.blendModeFromString(blend);
 				return true;
@@ -1202,16 +1205,22 @@ class FunkinLua {
 		});
 		Lua_helper.add_callback(lua, "objectsOverlap", function(obj1:String, obj2:String) {
 			var namesArray:Array<String> = [obj1, obj2];
-			var objectsArray:Array<FlxBasic> = [];
+			var objectsArray:Array<FlxSprite> = [];
 			for (i in 0...namesArray.length)
 			{
-				var real:FlxBasic = game.getLuaObject(namesArray[i]);
-				if(real != null)
+				var real = game.getLuaObject(namesArray[i]);
+				if(real!=null) {
 					objectsArray.push(real);
-				else
+				} else {
 					objectsArray.push(Reflect.getProperty(LuaUtils.getTargetInstance(), namesArray[i]));
+				}
 			}
-			return (!objectsArray.contains(null) && FlxG.overlap(objectsArray[0], objectsArray[1]));
+
+			if(!objectsArray.contains(null) && FlxG.overlap(objectsArray[0], objectsArray[1]))
+			{
+				return true;
+			}
+			return false;
 		});
 		Lua_helper.add_callback(lua, "getPixelColor", function(obj:String, x:Int, y:Int) {
 			var split:Array<String> = obj.split('.');
@@ -1539,9 +1548,25 @@ class FunkinLua {
 			return closed;
 		});
 
+		function initializeLuaCallback(registerCallback:Void->Void, moduleName:String, isPPTOOL:Bool):Void {
+			try {
+				registerCallback();
+				if (isPPTOOL == true) {
+					trace("PPTOOL LUA LOAD: " + moduleName);
+				} else {
+					trace("Psych LUA LOAD: " + moduleName);
+				}
+			} catch (e:Dynamic) {
+				trace("Error loading " + moduleName + " callbacks: " + e);
+			}
+		}
+		// Psych Lua
 		#if DISCORD_ALLOWED DiscordClient.addLuaCallbacks(lua); #end
 		#if ACHIEVEMENTS_ALLOWED Achievements.addLuaCallbacks(lua); #end
 		#if TRANSLATIONS_ALLOWED Language.addLuaCallbacks(lua); #end
+		// Cyber Lua
+		#if LUA_EXTENSIONS_ALLOWED AHPLua.addLuaCallbacks(lua); #end
+		// Psych [DO NOT EDIT]
 		#if HSCRIPT_ALLOWED HScript.implement(this); #end
 		#if flxanimate FlxAnimateFunctions.implement(this); #end
 		ReflectionFunctions.implement(this);
@@ -1550,6 +1575,7 @@ class FunkinLua {
 		CustomSubstate.implement(this);
 		ShaderFunctions.implement(this);
 		DeprecatedFunctions.implement(this);
+
 
 		for (name => func in customFunctions)
 		{
@@ -1581,7 +1607,7 @@ class FunkinLua {
 			trace(e);
 			return;
 		}
-		trace('lua file loaded succesfully:' + scriptName);
+		trace('lua file loaded succesfully: ' + scriptName);
 
 		call('onCreate', []);
 	}

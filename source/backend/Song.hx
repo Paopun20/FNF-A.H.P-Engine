@@ -179,4 +179,41 @@ class Song
 		}
 		return songJson;
 	}
+
+	public static function getConfig(song:String, ?folder:String):Dynamic {
+		try {
+			folder = folder != null ? folder : song;
+			var formattedFolder = Paths.formatToSongPath(folder);
+			var json = Paths.json('$formattedFolder/config');
+		
+			var rawData:String = null;
+		
+			#if MODS_ALLOWED
+			if (FileSystem.exists(json)) {
+				rawData = File.getContent(json);
+			} else 
+			#end
+			{
+				rawData = Assets.getText(json);
+			}
+		
+			// Check if data is null or empty
+			if (rawData == null || rawData.trim() == "") {
+				trace('No configuration data found for song: $song in folder: $folder.');
+				return null;
+			}
+		
+			// Attempt to parse the JSON data
+			try {
+				return Json.parse(rawData);
+			} catch (err:Dynamic) {
+				trace('Error parsing JSON for song: $song - $err');
+				return null;
+			}
+		} catch (err:Dynamic) {
+			// Trace unexpected errors from the outer try block
+			trace('Unexpected error in getConfig for song: $song - $err');
+			return null;
+		}
+	}	
 }

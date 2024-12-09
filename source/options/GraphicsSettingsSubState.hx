@@ -18,43 +18,56 @@ class GraphicsSettingsSubState extends BaseOptionsMenu
 		boyfriend.animation.finishCallback = function (name:String) boyfriend.dance();
 		boyfriend.visible = false;
 
-		//I'd suggest using "Low Quality" as an example for making your own option since it is the simplest here
-		var option:Option = new Option('Low Quality', //Name
-			'If checked, disables some background details,\ndecreases loading times and improves performance.', //Description
-			'lowQuality', //Save data variable name
-			BOOL); //Variable type
+		// Example Option for "Low Quality" setting, which is the simplest case
+		var option: Option = new Option(
+		    'Low Quality',  // Option name
+		    'When enabled, reduces some background details to improve performance and decrease loading times.', // Description
+		    'lowQuality',  // Save data variable name
+		    BOOL  // Variable type
+		);
 		addOption(option);
-
-		var option:Option = new Option('Anti-Aliasing',
-			'If unchecked, disables anti-aliasing, increases performance\nat the cost of sharper visuals.',
-			'antialiasing',
-			BOOL);
-		option.onChange = onChangeAntiAliasing; //Changing onChange is only needed if you want to make a special interaction after it changes the value
+		
+		// Option for Anti-Aliasing setting
+		var option: Option = new Option(
+		    'Anti-Aliasing', 
+		    'When disabled, anti-aliasing is turned off, which improves performance at the cost of slightly sharper visuals.', 
+		    'antialiasing', 
+		    BOOL
+		);
+		option.onChange = onChangeAntiAliasing; // Optional callback for special interactions when the option changes
 		addOption(option);
-		antialiasingOption = optionsArray.length-1;
-
-		var option:Option = new Option('Shaders', //Name
-			"If unchecked, disables shaders.\nIt's used for some visual effects, and also CPU intensive for weaker PCs.", //Description
-			'shaders',
-			BOOL);
+		antialiasingOption = optionsArray.length - 1;
+		
+		// Option for Shader settings
+		var option: Option = new Option(
+		    'Shaders', // Option name
+		    'Disables shaders when unchecked. Shaders are used for visual effects, but can be CPU-intensive on weaker PCs.', // Description
+		    'shaders', 
+		    BOOL
+		);
 		addOption(option);
-
-		var option:Option = new Option('GPU Caching', //Name
-			"If checked, allows the GPU to be used for caching textures, decreasing RAM usage.\nDon't turn this on if you have a shitty Graphics Card.", //Description
-			'cacheOnGPU',
-			BOOL);
+		
+		// Option for GPU Caching
+		var option: Option = new Option(
+		    'GPU Caching', // Option name
+		    'When enabled, the GPU will cache textures, reducing RAM usage. However, avoid using this on systems with low-end graphics cards.', // Description
+		    'cacheOnGPU', 
+		    BOOL
+		);
 		addOption(option);
-
-		#if !html5 //Apparently other framerates isn't correctly supported on Browser? Probably it has some V-Sync shit enabled by default, idk
-		var option:Option = new Option('Framerate',
-			"Pretty self explanatory, isn't it?",
-			'framerate',
-			INT);
+		
+		#if !html5 // Disabling framerate adjustments due to potential issues on browsers
+		var option: Option = new Option(
+		    'Framerate', 
+		    'Adjusts the game’s frame rate. This setting may not work properly in browsers due to V-Sync settings or other restrictions.', 
+		    'framerate', 
+		    INT
+		);
 		addOption(option);
 
 		final refreshRate:Int = FlxG.stage.application.window.displayMode.refreshRate;
-		option.minValue = 60;
-		option.maxValue = 240;
+		option.minValue = 1;
+		option.maxValue = 1000;
 		option.defaultValue = Std.int(FlxMath.bound(refreshRate, option.minValue, option.maxValue));
 		option.displayFormat = '%v FPS';
 		option.onChange = onChangeFramerate;

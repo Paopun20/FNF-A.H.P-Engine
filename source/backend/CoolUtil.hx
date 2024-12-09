@@ -2,20 +2,21 @@ package backend;
 
 import openfl.utils.Assets;
 import lime.utils.Assets as LimeAssets;
+import haxe.Json;
 
 class CoolUtil
 {
-	inline public static function quantize(f:Float, snap:Float){
+	public static function quantize(f:Float, snap:Float){
 		// changed so this actually works lol
 		var m:Float = Math.fround(f * snap);
 		//trace(snap);
 		return (m / snap);
 	}
 
-	inline public static function capitalize(text:String)
+	public static function capitalize(text:String)
 		return text.charAt(0).toUpperCase() + text.substr(1).toLowerCase();
 
-	inline public static function coolTextFile(path:String):Array<String>
+	public static function coolTextFile(path:String):Array<String>
 	{
 		var daList:String = null;
 		#if (sys && MODS_ALLOWED)
@@ -26,7 +27,7 @@ class CoolUtil
 		return daList != null ? listFromString(daList) : [];
 	}
 
-	inline public static function colorFromString(color:String):FlxColor
+	public static function colorFromString(color:String):FlxColor
 	{
 		var hideChars = ~/[\t\n\r]/;
 		var color:String = hideChars.split(color).join('').trim();
@@ -37,7 +38,7 @@ class CoolUtil
 		return colorNum != null ? colorNum : FlxColor.WHITE;
 	}
 
-	inline public static function listFromString(string:String):Array<String>
+	public static function listFromString(string:String):Array<String>
 	{
 		var daList:Array<String> = [];
 		daList = string.trim().split('\n');
@@ -61,7 +62,7 @@ class CoolUtil
 		return newValue / tempMult;
 	}
 
-	inline public static function dominantColor(sprite:flixel.FlxSprite):Int
+	public static function dominantColor(sprite:flixel.FlxSprite):Int
 	{
 		var countByColor:Map<Int, Int> = [];
 		for(col in 0...sprite.frameWidth)
@@ -93,7 +94,7 @@ class CoolUtil
 		return maxKey;
 	}
 
-	inline public static function numberArray(max:Int, ?min = 0):Array<Int>
+	public static function numberArray(max:Int, ?min = 0):Array<Int>
 	{
 		var dumbArray:Array<Int> = [];
 		for (i in min...max) dumbArray.push(i);
@@ -101,7 +102,7 @@ class CoolUtil
 		return dumbArray;
 	}
 
-	inline public static function browserLoad(site:String) {
+	public static function browserLoad(site:String) {
 		#if linux
 		Sys.command('/usr/bin/xdg-open', [site]);
 		#else
@@ -109,7 +110,7 @@ class CoolUtil
 		#end
 	}
 
-	inline public static function openFolder(folder:String, absolute:Bool = false) {
+	public static function openFolder(folder:String, absolute:Bool = false) {
 		#if sys
 			if(!absolute) folder =  Sys.getCwd() + '$folder';
 
@@ -138,7 +139,7 @@ class CoolUtil
 		@crowplexus
 	**/
 	@:access(flixel.util.FlxSave.validate)
-	inline public static function getSavePath():String {
+	public static function getSavePath():String {
 		final company:String = FlxG.stage.application.meta.get('company');
 		// #if (flixel < "5.0.0") return company; #else
 		return '${company}/${flixel.util.FlxSave.validate(FlxG.stage.application.meta.get('file'))}';
@@ -158,5 +159,47 @@ class CoolUtil
 			default:
 				text.borderStyle = NONE;
 		}
+	}
+
+	// New Features Below
+	public static function randomColor():FlxColor {
+		return FlxColor.fromRGB(
+			Std.int(Math.random() * 255),
+			Std.int(Math.random() * 255),
+			Std.int(Math.random() * 255)
+		);
+	}
+
+	public static function randomWordFromFile(path:String):String {
+		var words = coolTextFile(path);
+		return words.length > 0 ? words[Std.int(Math.random() * words.length)] : "";
+	}
+
+	public static function autoFloorDecimal(value:Float, ?decimals:Int = 2):Float {
+		var factor = Math.pow(10, decimals);
+		return Math.floor(value * factor) / factor;
+	}
+
+	public static function areColorsSimilar(color1:FlxColor, color2:FlxColor, tolerance:Int = 10):Bool {
+		var rDiff = Math.abs(color1.red - color2.red);
+		var gDiff = Math.abs(color1.green - color2.green);
+		var bDiff = Math.abs(color1.blue - color2.blue);
+		return rDiff <= tolerance && gDiff <= tolerance && bDiff <= tolerance;
+	}
+
+	public static function toUpperCase(text:String):String {
+		return text.toUpperCase();
+	}
+
+	public static function toLowerCase(text:String):String {
+		return text.toLowerCase();
+	}
+
+	public static function parseJsonToArray(jsonString:String):Array<Dynamic> {
+		return Json.parse(jsonString);
+	}
+
+	public static function parseJsonToMap(jsonString:String):Map<String, Dynamic> {
+		return cast Json.parse(jsonString);
 	}
 }
