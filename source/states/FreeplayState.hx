@@ -8,7 +8,7 @@ import objects.HealthIcon;
 import objects.MusicPlayer;
 
 import options.GameplayChangersSubstate;
-import substates.ResetScoreSubState;
+import substates.*;
 
 import flixel.math.FlxMath;
 import flixel.util.FlxDestroyUtil;
@@ -37,6 +37,7 @@ class FreeplayState extends MusicBeatState
 
 	private var grpSongs:FlxTypedGroup<Alphabet>;
 	private var curPlaying:Bool = false;
+	public static var canload: Bool = false;
 
 	private var iconArray:Array<HealthIcon> = [];
 
@@ -54,8 +55,8 @@ class FreeplayState extends MusicBeatState
 
 	override function create()
 	{
-		//Paths.clearStoredMemory();
-		//Paths.clearUnusedMemory();
+		Paths.clearStoredMemory();
+		Paths.clearUnusedMemory();
 		
 		persistentUpdate = true;
 		PlayState.isStoryMode = false;
@@ -409,42 +410,43 @@ class FreeplayState extends MusicBeatState
 			var songLowercase:String = Paths.formatToSongPath(songs[curSelected].songName);
 			var poop:String = Highscore.formatSong(songLowercase, curDifficulty);
 
+			var config_song = Song.getConfig(poop, songLowercase);
+			//loadSong(poop, songLowercase);
 			try
-			{
-				Song.loadFromJson(poop, songLowercase);
-				PlayState.isStoryMode = false;
-				PlayState.storyDifficulty = curDifficulty;
-
-				trace('CURRENT WEEK: ' + WeekData.getWeekFileName());
-			}
-			catch(e:haxe.Exception)
-			{
-				trace('ERROR! ${e.message}');
-
-				var errorStr:String = e.message;
-				if(errorStr.contains('There is no TEXT asset with an ID of')) errorStr = 'Missing file: ' + errorStr.substring(errorStr.indexOf(songLowercase), errorStr.length-1); //Missing chart
-				else errorStr += '\n\n' + e.stack;
-
-				missingText.text = 'ERROR WHILE LOADING CHART:\n$errorStr';
-				missingText.screenCenter(Y);
-				missingText.visible = true;
-				missingTextBG.visible = true;
-				FlxG.sound.play(Paths.sound('cancelMenu'));
-
-				updateTexts(elapsed);
-				super.update(elapsed);
-				return;
-			}
-
-			LoadingState.prepareToSong();
-			LoadingState.loadAndSwitchState(new PlayState());
-			#if !SHOW_LOADING_SCREEN FlxG.sound.music.stop(); #end
-			stopMusicPlay = true;
-
-			destroyFreeplayVocals();
-			#if (MODS_ALLOWED && DISCORD_ALLOWED)
-			DiscordClient.loadModRPC();
-			#end
+				{
+					Song.loadFromJson(poop, songLowercase);
+					PlayState.isStoryMode = false;
+					PlayState.storyDifficulty = curDifficulty;
+	
+					trace('CURRENT WEEK: ' + WeekData.getWeekFileName());
+				}
+				catch(e:haxe.Exception)
+				{
+					trace('ERROR! ${e.message}');
+	
+					var errorStr:String = e.message;
+					if(errorStr.contains('There is no TEXT asset with an ID of')) errorStr = 'Missing file: ' + errorStr.substring(errorStr.indexOf(songLowercase), errorStr.length-1); //Missing chart
+					else errorStr += '\n\n' + e.stack;
+	
+					missingText.text = 'ERROR WHILE LOADING CHART:\n$errorStr';
+					missingText.screenCenter(Y);
+					missingText.visible = true;
+					missingTextBG.visible = true;
+					FlxG.sound.play(Paths.sound('cancelMenu'));
+					updateTexts(elapsed);
+					super.update(elapsed);
+					return;
+				}
+	
+				LoadingState.prepareToSong();
+				LoadingState.loadAndSwitchState(new PlayState());
+				#if !SHOW_LOADING_SCREEN FlxG.sound.music.stop(); #end
+				stopMusicPlay = true;
+	
+				destroyFreeplayVocals();
+				#if (MODS_ALLOWED && DISCORD_ALLOWED)
+				DiscordClient.loadModRPC();
+				#end
 		}
 		else if(controls.RESET && !player.playingMusic)
 		{
@@ -456,6 +458,59 @@ class FreeplayState extends MusicBeatState
 		updateTexts(elapsed);
 		super.update(elapsed);
 	}
+
+	//function loadWarning(poop, songLowercase) {
+	//	canload = false;
+	//	
+	//	// Debugging: Log the config_song value
+	//	trace('config_song: ' + Std.string(config_song));
+	//	
+	//	if (config_song != null && Reflect.hasField(config_song, 'warningText')) {
+	//		// Debugging: Log that we're showing the warning
+	//		trace('warningText found: ' + config_song.warningText);
+	//		
+	//		openSubState(new FreeplayWarnSubState(songs[curSelected].songName, config_song.warningText, (isAccept: Bool) -> {
+	//			if (isAccept) {
+	//				FreeplayState.loadSong(poop, songLowercase);
+	//			}
+	//		}));
+	//	} else {
+	//		loadSong(poop, songLowercase);
+	//	}
+	//}
+
+	//public function loadSong(poop, songLowercase) {
+	//	try
+	//		{
+	//			Song.loadFromJson(poop, songLowercase);
+	//			PlayState.isStoryMode = false;
+	//			PlayState.storyDifficulty = curDifficulty;
+	//			trace('CURRENT WEEK: ' + WeekData.getWeekFileName());
+	//		}
+	//		catch(e:haxe.Exception)
+	//		{
+	//			trace('ERROR! ${e.message}');
+	//			var errorStr:String = e.message;
+	//			if(errorStr.contains('There is no TEXT asset with an ID of')) errorStr = 'Missing file: ' + errorStr.substring(errorStr.indexOf(songLowercase), errorStr.length-1); //Missing chart
+	//			else errorStr += '\n\n' + e.stack;
+	//			missingText.text = 'ERROR WHILE LOADING CHART:\n$errorStr';
+	//			missingText.screenCenter(Y);
+	//			missingText.visible = true;
+	//			missingTextBG.visible = true;
+	//			FlxG.sound.play(Paths.sound('cancelMenu'));
+	//			updateTexts(elapsed);
+	//			super.update(elapsed);
+	//			return;
+	//		}
+	//		LoadingState.prepareToSong();
+	//		LoadingState.loadAndSwitchState(new PlayState());
+	//		#if !SHOW_LOADING_SCREEN FlxG.sound.music.stop(); #end
+	//		stopMusicPlay = true;
+	//		destroyFreeplayVocals();
+	//		#if (MODS_ALLOWED && DISCORD_ALLOWED)
+	//		DiscordClient.loadModRPC();
+	//		#end
+	//}
 	
 	function getVocalFromCharacter(char:String)
 	{

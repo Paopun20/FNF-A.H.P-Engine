@@ -120,18 +120,17 @@ class ShaderFunctions
 		});
 		Lua_helper.add_callback(lua, "getShaderFloat", function(obj:String, prop:String) {
 			#if (!flash && sys)
-			var shader:FlxRuntimeShader = getShader(obj);
-			if (shader == null)
-			{
+			var shader:FlxRuntimeShader = getShader(obj); // Use the getShader helper
+			if (shader == null) {
 				FunkinLua.luaTrace("getShaderFloat: Shader is not FlxRuntimeShader!", false, false, FlxColor.RED);
 				return null;
 			}
-			return shader.getFloat(prop);
+			return shader.getFloat(prop); // Retrieve the float property
 			#else
 			FunkinLua.luaTrace("getShaderFloat: Platform unsupported for Runtime Shaders!", false, false, FlxColor.RED);
 			return null;
 			#end
-		});
+		});			
 		Lua_helper.add_callback(lua, "getShaderFloatArray", function(obj:String, prop:String) {
 			#if (!flash && sys)
 			var shader:FlxRuntimeShader = getShader(obj);
@@ -266,19 +265,22 @@ class ShaderFunctions
 	}
 	
 	#if (!flash && sys)
-	public static function getShader(obj:String):FlxRuntimeShader
-	{
+	public static function getShader(obj:String):FlxRuntimeShader {
 		var split:Array<String> = obj.split('.');
 		var target:FlxSprite = null;
-		if(split.length > 1) target = LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length-1]);
-		else target = LuaUtils.getObjectDirectly(split[0]);
-
-		if(target == null)
-		{
+	
+		if (split.length > 1) {
+			target = LuaUtils.getVarInArray(LuaUtils.getPropertyLoop(split), split[split.length - 1]);
+		} else {
+			target = LuaUtils.getObjectDirectly(split[0]);
+		}
+	
+		if (target == null) {
 			FunkinLua.luaTrace('Error on getting shader: Object $obj not found', false, false, FlxColor.RED);
 			return null;
 		}
-		return cast (target.shader, FlxRuntimeShader);
+	
+		return cast (target.shader, FlxRuntimeShader); // Corrected cast syntax
 	}
 	#end
 }

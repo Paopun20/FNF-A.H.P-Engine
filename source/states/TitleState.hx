@@ -8,6 +8,7 @@ import flixel.graphics.frames.FlxFrame;
 import flixel.group.FlxGroup;
 import flixel.input.gamepad.FlxGamepad;
 import haxe.Json;
+import ahptool.*;
 
 import openfl.Assets;
 import openfl.display.Bitmap;
@@ -41,6 +42,8 @@ class TitleState extends MusicBeatState
 	public static var muteKeys:Array<FlxKey> = [FlxKey.ZERO];
 	public static var volumeDownKeys:Array<FlxKey> = [FlxKey.NUMPADMINUS, FlxKey.MINUS];
 	public static var volumeUpKeys:Array<FlxKey> = [FlxKey.NUMPADPLUS, FlxKey.PLUS];
+	
+	public static var updateVersion:String = '';
 
 	public static var initialized:Bool = false;
 
@@ -66,8 +69,7 @@ class TitleState extends MusicBeatState
 	#end
 
 	var mustUpdate:Bool = false;
-
-	public static var updateVersion:String = '';
+	var debugforcedupdate:Bool = false; // for debug
 
 	override public function create():Void
 	{
@@ -83,29 +85,28 @@ class TitleState extends MusicBeatState
 
 		curWacky = FlxG.random.getObject(getIntroTextShit());
 
-		#if CHECK_FOR_UPDATES
-		if(ClientPrefs.data.checkForUpdates && !closedState) {
+	/*
+	#if CHECK_FOR_UPDATES
+		if((ClientPrefs.data.checkForUpdates && !closedState) || debugforcedupdate) {
 			trace('checking for update');
-			var http = new haxe.Http("https://raw.githubusercontent.com/ShadowMario/FNF-PsychEngine/main/gitVersion.txt");
 
-			http.onData = function (data:String)
-			{
-				updateVersion = data.split('\n')[0].trim();
-				var curVersion:String = MainMenuState.psychEngineVersion.trim();
-				trace('version online: ' + updateVersion + ', your version: ' + curVersion);
-				if(updateVersion != curVersion) {
-					trace('versions arent matching!');
-					mustUpdate = true;
+			HttpClient.getRequest("https://raw.githubusercontent.com/ShadowMario/FNF-PsychEngine/main/gitVersion.txt", function(succeed:Bool, data:String) {
+				if (succeed) {
+					updateVersion = data.split('\n')[0].trim();
+					var curVersion:String = MainMenuState.psychEngineVersion.trim();
+					trace('Version online: ' + updateVersion + ', Your version: ' + curVersion);
+		
+					if ((updateVersion != curVersion) || debugforcedupdate) {
+						trace('Versions aren\'t matching!');
+						mustUpdate = true;
+					}
+				} else {
+					trace('Failed to get ver: ' + data);
 				}
-			}
-
-			http.onError = function (error) {
-				trace('error: $error');
-			}
-
-			http.request();
+			});
 		}
 		#end
+		*/
 
 		if(!initialized)
 		{

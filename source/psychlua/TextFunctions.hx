@@ -181,7 +181,6 @@ class TextFunctions
 			FunkinLua.luaTrace("getTextWidth: Object " + tag + " doesn't exist!", false, false, FlxColor.RED);
 			return 0;
 		});
-
 		Lua_helper.add_callback(lua, "addLuaText", function(tag:String) {
 			var text:FlxText = MusicBeatState.getVariables().get(tag);
 			if(text != null) LuaUtils.getTargetInstance().add(text);
@@ -197,6 +196,9 @@ class TextFunctions
 				text.destroy();
 				variables.remove(tag);
 			}
+		});
+		Lua_helper.add_callback(lua, "luaTextExists", function(tag:String) {
+			return (MusicBeatState.getVariables().get(tag) != null);
 		});
 	}
 }

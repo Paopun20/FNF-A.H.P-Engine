@@ -19,6 +19,8 @@ class CreditsState extends MusicBeatState
 
 	override function create()
 	{
+		Paths.clearStoredMemory();
+		Paths.clearUnusedMemory();
 		#if DISCORD_ALLOWED
 		// Updating Discord Rich Presence
 		DiscordClient.changePresence("In the Menus", null);
@@ -38,6 +40,17 @@ class CreditsState extends MusicBeatState
 		#end
 
 		var defaultList:Array<Array<String>> = [ //Name - Icon name - Description - Link - BG Color
+			["Cyber Engine Team"],
+			["Paopun20", "missing_icon","Main developer of the Cyber Engine, an adaptation of the Psych Engine framework.","https://www.youtube.com/channel/UCRrBz8jTU56TiXcmb9PtB4A",	"FFD700"],
+
+			//["Cyber ​​Retarded Mod Team"],
+			//["Paopun20","missing_icon","Programmer, art, song, chart","https://www.youtube.com/channel/UCRrBz8jTU56TiXcmb9PtB4A",	"FFD700"],
+			//["Dav_Bot","missing_icon","art, song",null, "FF6347"],
+
+			["Original Credits"],
+			["--- Go  Down ---"],
+			
+			[""],
 			["Psych Engine Team"],
 			["Shadow Mario",		"shadowmario",		"Main Programmer and Head of Psych Engine",					"https://ko-fi.com/shadowmario",	"444444"],
 			["Riveren",				"riveren",			"Main Artist/Animator of Psych Engine",						"https://x.com/riverennn",			"14967B"],
@@ -135,9 +148,8 @@ class CreditsState extends MusicBeatState
 	var holdTime:Float = 0;
 	override function update(elapsed:Float)
 	{
-		if (FlxG.sound.music.volume < 0.7)
-		{
-			FlxG.sound.music.volume += 0.5 * FlxG.elapsed;
+		if (FlxG.sound.music.volume < 0.7) {
+			FlxG.sound.music.volume = Math.min(FlxG.sound.music.volume + 0.5 * elapsed, 0.7);
 		}
 
 		if(!quitting)
@@ -242,7 +254,7 @@ class CreditsState extends MusicBeatState
 			descText.y = FlxG.height - descText.height + offsetThing - 60;
 	
 			if(moveTween != null) moveTween.cancel();
-			moveTween = FlxTween.tween(descText, {y : descText.y + 75}, 0.25, {ease: FlxEase.sineOut});
+			moveTween = FlxTween.tween(descText, {y : descText.y + 75}, 0.25, {ease: FlxEase.sineInOut});
 	
 			descBox.setGraphicSize(Std.int(descText.width + 20), Std.int(descText.height + 25));
 			descBox.updateHitbox();
