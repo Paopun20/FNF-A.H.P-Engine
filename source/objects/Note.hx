@@ -1,572 +1,379 @@
-package objects;
+package states;
 
-import backend.animation.PsychAnimationController;
-import backend.NoteTypesConfig;
+import flixel.FlxObject;
+import flixel.effects.FlxFlicker;
+import lime.app.Application;
+import states.editors.MasterEditorMenu;
+import options.OptionsState;
 
-import shaders.RGBPalette;
-import shaders.RGBPalette.RGBShaderReference;
-
-import objects.StrumNote;
-
-import flixel.math.FlxRect;
-
-using StringTools;
-
-typedef EventNote = {
-	strumTime:Float,
-	event:String,
-	value1:String,
-	value2:String
+enum MainMenuColumn {
+	LEFT;
+	CENTER;
+	RIGHT;
 }
 
-typedef NoteSplashData = {
-	disabled:Bool,
-	texture:String,
-	useGlobalShader:Bool, //breaks r/g/b but makes it copy default colors for your custom note
-	useRGBShader:Bool,
-	antialiasing:Bool,
-	a:Float
-}
-
-/**
- * The note object used as a data structure to spawn and manage notes during gameplay.
- * 
- * If you want to make a custom note type, you should search for: "function set_noteType"
-**/
-class Note extends FlxSprite
+class MainMenuState extends MusicBeatState
 {
-	//This is needed for the hardcoded note types to appear on the Chart Editor,
-	//It's also used for backwards compatibility with 0.1 - 0.3.2 charts.
-	public static final defaultNoteTypes:Array<String> = [
-		'', //Always leave this one empty pls
-		'Alt Animation',
-		'Hey!',
-		'Hurt Note',
-		'GF Sing',
-		'No Animation'
+	public static var psychEngineVersion:String = '1.0'; // This is also used for Discord RPC
+	public static var ahpEngineVersion:String = '0.0.1'; // This is also used for Discord RPC
+
+	public static var curSelected:Int = 0;
+	public static var curColumn:MainMenuColumn = CENTER;
+	var allowMouse:Bool = true; //Turn this off to block mouse movement in menus
+
+	var menuItems:FlxTypedGroup<FlxSprite>;
+	var leftItem:FlxSprite;
+	var rightItem:FlxSprite;
+
+	//Centered/Text options
+	var optionShit:Array<String> = [
+		'story_mode',
+		'freeplay',
+		#if MODS_ALLOWED 'mods', #end
+		'credits'
 	];
 
-	public var extraData:Map<String, Dynamic> = new Map<String, Dynamic>();
+	var leftOption:String = #if ACHIEVEMENTS_ALLOWED 'achievements' #else null #end;
+	var rightOption:String = 'options';
 
-	public var strumTime:Float = 0;
-	public var noteData:Int = 0;
+	var magenta:FlxSprite;
+	var camFollow:FlxObject;
 
-	public var mustPress:Bool = false;
-	public var canBeHit:Bool = false;
-	public var tooLate:Bool = false;
-
-	public var wasGoodHit:Bool = false;
-	public var missed:Bool = false;
-
-	public var ignoreNote:Bool = false;
-	public var hitByOpponent:Bool = false;
-	public var noteWasHit:Bool = false;
-	public var prevNote:Note;
-	public var nextNote:Note;
-
-	public var spawned:Bool = false;
-
-	public var tail:Array<Note> = []; // for sustains
-	public var parent:Note;
-	
-	public var blockHit:Bool = false; // only works for player
-
-	public var sustainLength:Float = 0;
-	public var isSustainNote:Bool = false;
-	public var noteType(default, set):String = null;
-
-	public var eventName:String = '';
-	public var eventLength:Int = 0;
-	public var eventVal1:String = '';
-	public var eventVal2:String = '';
-
-	public var rgbShader:RGBShaderReference;
-	public static var globalRgbShaders:Array<RGBPalette> = [];
-	public var inEditor:Bool = false;
-
-	public var animSuffix:String = '';
-	public var gfNote:Bool = false;
-	public var earlyHitMult:Float = 1;
-	public var lateHitMult:Float = 1;
-	public var lowPriority:Bool = false;
-
-	public static var SUSTAIN_SIZE:Int = 44;
-	public static var swagWidth:Float = 160 * 0.7;
-	public static var colArray:Array<String> = ['purple', 'blue', 'green', 'red'];
-	public static var defaultNoteSkin(default, never):String = 'noteSkins/NOTE_assets';
-
-	public var noteSplashData:NoteSplashData = {
-		disabled: false,
-		texture: null,
-		antialiasing: !PlayState.isPixelStage,
-		useGlobalShader: false,
-		useRGBShader: (PlayState.SONG != null) ? !(PlayState.SONG.disableNoteRGB == true) : true,
-		a: ClientPrefs.data.splashAlpha
-	};
-
-	public var offsetX:Float = 0;
-	public var offsetY:Float = 0;
-	public var offsetAngle:Float = 0;
-	public var multAlpha:Float = 1;
-	public var multSpeed(default, set):Float = 1;
-
-	public var copyX:Bool = true;
-	public var copyY:Bool = true;
-	public var copyAngle:Bool = true;
-	public var copyAlpha:Bool = true;
-
-	public var hitHealth:Float = 0.02;
-	public var missHealth:Float = 0.1;
-	public var rating:String = 'unknown';
-	public var ratingMod:Float = 0; //9 = unknown, 0.25 = shit, 0.5 = bad, 0.75 = good, 1 = sick
-	public var ratingDisabled:Bool = false;
-
-	public var texture(default, set):String = null;
-
-	public var noAnimation:Bool = false;
-	public var noMissAnimation:Bool = false;
-	public var hitCausesMiss:Bool = false;
-	public var distance:Float = 2000; //plan on doing scroll directions soon -bb
-
-	public var hitsoundDisabled:Bool = false;
-	public var hitsoundChartEditor:Bool = true;
-	/**
-	 * Forces the hitsound to be played even if the user's hitsound volume is set to 0
-	**/
-	public var hitsoundForce:Bool = false;
-	public var hitsoundVolume(get, default):Float = 1.0;
-	function get_hitsoundVolume():Float {
-		if(ClientPrefs.data.hitsoundVolume > 0)
-			return ClientPrefs.data.hitsoundVolume;
-		return hitsoundForce ? hitsoundVolume : 0.0;
-	}
-	public var hitsound:String = 'hitsound';
-
-	private function set_multSpeed(value:Float):Float {
-		resizeByRatio(value / multSpeed);
-		multSpeed = value;
-		//trace('fuck cock');
-		return value;
-	}
-
-	public function resizeByRatio(ratio:Float) //haha funny twitter shit
+	override function create()
 	{
-		if(isSustainNote && animation.curAnim != null && !animation.curAnim.name.endsWith('end'))
+		Paths.clearStoredMemory();
+		Paths.clearUnusedMemory();
+
+		#if MODS_ALLOWED
+		Mods.pushGlobalMods();
+		#end
+		Mods.loadTopMod();
+
+		#if DISCORD_ALLOWED
+		// Updating Discord Rich Presence
+		DiscordClient.changePresence("In the Menus", null);
+		#end
+
+		persistentUpdate = persistentDraw = true;
+
+		var yScroll:Float = 0.25;
+		var bg:FlxSprite = new FlxSprite(-80).loadGraphic(Paths.image('menuBG'));
+		bg.antialiasing = ClientPrefs.data.antialiasing;
+		bg.scrollFactor.set(0, 0);
+		bg.setGraphicSize(Std.int(bg.width));
+		bg.updateHitbox();
+		bg.screenCenter();
+		add(bg);
+
+		camFollow = new FlxObject(0, 0, 1, 1);
+		add(camFollow);
+
+		magenta = new FlxSprite(-80).loadGraphic(Paths.image('menuDesat'));
+		magenta.antialiasing = ClientPrefs.data.antialiasing;
+		magenta.scrollFactor.set(0, 0);
+		magenta.setGraphicSize(Std.int(magenta.width));
+		magenta.updateHitbox();
+		magenta.screenCenter();
+		magenta.visible = false;
+		magenta.color = 0xFFfd719b;
+		add(magenta);
+
+		menuItems = new FlxTypedGroup<FlxSprite>();
+		add(menuItems);
+
+		for (num => option in optionShit)
 		{
-			scale.y *= ratio;
-			updateHitbox();
+			var item:FlxSprite = createMenuItem(option, 0, (num * 140) + 90);
+			item.y += (4 - optionShit.length) * 70; // Offsets for when you have anything other than 4 items
+			item.screenCenter(X);
 		}
+
+		if (leftOption != null)
+			leftItem = createMenuItem(leftOption, 60, 490);
+		if (rightOption != null)
+		{
+			rightItem = createMenuItem(rightOption, FlxG.width - 60, 490);
+			rightItem.x -= rightItem.width;
+		}
+
+		var ahpVer:FlxText = new FlxText(12, FlxG.height - 68, 0, "A.H.P Engine v" + ahpEngineVersion, 12);
+		var psychVer:FlxText = new FlxText(12, FlxG.height - 44, 0, "Psych Engine v" + psychEngineVersion, 12);
+		var fnfVer:FlxText = new FlxText(12, FlxG.height - 24, 0, "Friday Night Funkin' v" + Application.current.meta.get('version'), 12);
+		psychVer.scrollFactor.set();
+		ahpVer.scrollFactor.set();
+		fnfVer.scrollFactor.set();
+
+		psychVer.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		ahpVer.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		fnfVer.setFormat(Paths.font("vcr.ttf"), 16, FlxColor.WHITE, LEFT, FlxTextBorderStyle.OUTLINE, FlxColor.BLACK);
+		add(psychVer);
+		add(fnfVer);
+		add(ahpVer);
+
+		changeItem();
+
+		#if ACHIEVEMENTS_ALLOWED
+		// Unlocks "Freaky on a Friday Night" achievement if it's a Friday and between 18:00 PM and 23:59 PM
+		var leDate = Date.now();
+		if (leDate.getDay() == 5 && leDate.getHours() >= 18)
+			Achievements.unlock('friday_night_play');
+
+		#if MODS_ALLOWED
+		Achievements.reloadList();
+		#end
+		#end
+
+		super.create();
+
+		FlxG.camera.follow(camFollow, null, 0.15);
 	}
 
-	private function set_texture(value:String):String {
-		if(texture != value) reloadNote(value);
-
-		texture = value;
-		return value;
-	}
-
-	public function defaultRGB()
+	function createMenuItem(name:String, x:Float, y:Float):FlxSprite
 	{
-		var arr:Array<FlxColor> = ClientPrefs.data.arrowRGB[noteData];
-		if(PlayState.isPixelStage) arr = ClientPrefs.data.arrowRGBPixel[noteData];
-
-		if (arr != null && noteData > -1 && noteData <= arr.length)
-		{
-			rgbShader.r = arr[0];
-			rgbShader.g = arr[1];
-			rgbShader.b = arr[2];
-		}
-		else
-		{
-			rgbShader.r = 0xFFFF0000;
-			rgbShader.g = 0xFF00FF00;
-			rgbShader.b = 0xFF0000FF;
-		}
+		var menuItem:FlxSprite = new FlxSprite(x, y);
+		menuItem.frames = Paths.getSparrowAtlas('mainmenu/menu_$name');
+		menuItem.animation.addByPrefix('idle', '$name idle', 24, true);
+		menuItem.animation.addByPrefix('selected', '$name selected', 24, true);
+		menuItem.animation.play('idle');
+		menuItem.updateHitbox();
+		
+		menuItem.antialiasing = ClientPrefs.data.antialiasing;
+		menuItem.scrollFactor.set();
+		menuItems.add(menuItem);
+		return menuItem;
 	}
 
-	private function set_noteType(value:String):String {
-		noteSplashData.texture = PlayState.SONG != null ? PlayState.SONG.splashSkin : 'noteSplashes';
-		defaultRGB();
+	var selectedSomethin:Bool = false;
 
-		if(noteData > -1 && noteType != value) {
-			switch(value) {
-				case 'Hurt Note':
-					ignoreNote = mustPress;
-					//reloadNote('HURTNOTE_assets');
-					//this used to change the note texture to HURTNOTE_assets.png,
-					//but i've changed it to something more optimized with the implementation of RGBPalette:
-
-					// note colors
-					rgbShader.r = 0xFF101010;
-					rgbShader.g = 0xFFFF0000;
-					rgbShader.b = 0xFF990022;
-
-					// splash data and colors
-					//noteSplashData.r = 0xFFFF0000;
-					//noteSplashData.g = 0xFF101010;
-					noteSplashData.texture = 'noteSplashes-electric';
-
-					// gameplay data
-					lowPriority = true;
-					missHealth = isSustainNote ? 0.25 : 0.1;
-					hitCausesMiss = true;
-					hitsound = 'cancelMenu';
-					hitsoundChartEditor = false;
-				case 'Alt Animation':
-					animSuffix = '-alt';
-				case 'No Animation':
-					noAnimation = true;
-					noMissAnimation = true;
-				case 'GF Sing':
-					gfNote = true;
-			}
-			if (value != null && value.length > 1) NoteTypesConfig.applyNoteTypeData(this, value);
-			if (hitsound != 'hitsound' && hitsoundVolume > 0) Paths.sound(hitsound); //precache new sound for being idiot-proof
-			noteType = value;
-		}
-		return value;
-	}
-
-	public function new(strumTime:Float, noteData:Int, ?prevNote:Note, ?sustainNote:Bool = false, ?inEditor:Bool = false, ?createdFrom:Dynamic = null)
+	var timeNotMoving:Float = 0;
+	override function update(elapsed:Float)
 	{
-		super();
+		if (FlxG.sound.music.volume < 0.8)
+			FlxG.sound.music.volume = Math.min(FlxG.sound.music.volume + 0.5 * elapsed, 0.8);
 
-		animation = new PsychAnimationController(this);
-
-		antialiasing = ClientPrefs.data.antialiasing;
-		if(createdFrom == null) createdFrom = PlayState.instance;
-
-		if (prevNote == null)
-			prevNote = this;
-
-		this.prevNote = prevNote;
-		isSustainNote = sustainNote;
-		this.inEditor = inEditor;
-		this.moves = false;
-
-		x += (ClientPrefs.data.middleScroll ? PlayState.STRUM_X_MIDDLESCROLL : PlayState.STRUM_X) + 50;
-		// MAKE SURE ITS DEFINITELY OFF SCREEN?
-		y -= 2000;
-		this.strumTime = strumTime;
-		if(!inEditor) this.strumTime += ClientPrefs.data.noteOffset;
-
-		this.noteData = noteData;
-
-		if(noteData > -1)
+		if (!selectedSomethin)
 		{
-			rgbShader = new RGBShaderReference(this, initializeGlobalRGBShader(noteData));
-			if(PlayState.SONG != null && PlayState.SONG.disableNoteRGB) rgbShader.enabled = false;
-			texture = '';
+			if (controls.UI_UP_P)
+				changeItem(-1);
 
-			x += swagWidth * (noteData);
-			if(!isSustainNote && noteData < colArray.length) { //Doing this 'if' check to fix the warnings on Senpai songs
-				var animToPlay:String = '';
-				animToPlay = colArray[noteData % colArray.length];
-				animation.play(animToPlay + 'Scroll');
-			}
-		}
+			if (controls.UI_DOWN_P)
+				changeItem(1);
 
-		// trace(prevNote);
-
-		if(prevNote != null)
-			prevNote.nextNote = this;
-
-		if (isSustainNote && prevNote != null)
-		{
-			alpha = 0.6;
-			multAlpha = 0.6;
-			hitsoundDisabled = true;
-			if(ClientPrefs.data.downScroll) flipY = true;
-
-			offsetX += width / 2;
-			copyAngle = false;
-
-			animation.play(colArray[noteData % colArray.length] + 'holdend');
-
-			updateHitbox();
-
-			offsetX -= width / 2;
-
-			if (PlayState.isPixelStage)
-				offsetX += 30;
-
-			if (prevNote.isSustainNote)
+			var allowMouse:Bool = allowMouse;
+			if (allowMouse && ((FlxG.mouse.deltaScreenX != 0 && FlxG.mouse.deltaScreenY != 0) || FlxG.mouse.justPressed)) //FlxG.mouse.deltaScreenX/Y checks is more accurate than FlxG.mouse.justMoved
 			{
-				prevNote.animation.play(colArray[prevNote.noteData % colArray.length] + 'hold');
+				allowMouse = false;
+				FlxG.mouse.visible = true;
+				timeNotMoving = 0;
 
-				prevNote.scale.y *= Conductor.stepCrochet / 100 * 1.05;
-				if(createdFrom != null && createdFrom.songSpeed != null) prevNote.scale.y *= createdFrom.songSpeed;
-
-				if(PlayState.isPixelStage) {
-					prevNote.scale.y *= 1.19;
-					prevNote.scale.y *= (6 / height); //Auto adjust note size
+				var selectedItem:FlxSprite;
+				switch(curColumn)
+				{
+					case CENTER:
+						selectedItem = menuItems.members[curSelected];
+					case LEFT:
+						selectedItem = leftItem;
+					case RIGHT:
+						selectedItem = rightItem;
 				}
-				prevNote.updateHitbox();
-				// prevNote.setGraphicSize();
-			}
 
-			if(PlayState.isPixelStage)
-			{
-				scale.y *= PlayState.daPixelZoom;
-				updateHitbox();
-			}
-			earlyHitMult = 0;
-		}
-		else if(!isSustainNote)
-		{
-			centerOffsets();
-			centerOrigin();
-		}
-		x += offsetX;
-	}
+				if(leftItem != null && FlxG.mouse.overlaps(leftItem))
+				{
+					allowMouse = true;
+					if(selectedItem != leftItem)
+					{
+						curColumn = LEFT;
+						changeItem();
+					}
+				}
+				else if(rightItem != null && FlxG.mouse.overlaps(rightItem))
+				{
+					allowMouse = true;
+					if(selectedItem != rightItem)
+					{
+						curColumn = RIGHT;
+						changeItem();
+					}
+				}
+				else
+				{
+					var dist:Float = -1;
+					var distItem:Int = -1;
+					for (i in 0...optionShit.length)
+					{
+						var memb:FlxSprite = menuItems.members[i];
+						if(FlxG.mouse.overlaps(memb))
+						{
+							var distance:Float = Math.sqrt(Math.pow(memb.getGraphicMidpoint().x - FlxG.mouse.screenX, 2) + Math.pow(memb.getGraphicMidpoint().y - FlxG.mouse.screenY, 2));
+							if (dist < 0 || distance < dist)
+							{
+								dist = distance;
+								distItem = i;
+								allowMouse = true;
+							}
+						}
+					}
 
-	public static function initializeGlobalRGBShader(noteData:Int)
-	{
-		if(globalRgbShaders[noteData] == null)
-		{
-			var newRGB:RGBPalette = new RGBPalette();
-			var arr:Array<FlxColor> = (!PlayState.isPixelStage) ? ClientPrefs.data.arrowRGB[noteData] : ClientPrefs.data.arrowRGBPixel[noteData];
-			
-			if (arr != null && noteData > -1 && noteData <= arr.length)
-			{
-				newRGB.r = arr[0];
-				newRGB.g = arr[1];
-				newRGB.b = arr[2];
+					if(distItem != -1 && selectedItem != menuItems.members[distItem])
+					{
+						curColumn = CENTER;
+						curSelected = distItem;
+						changeItem();
+					}
+				}
 			}
 			else
 			{
-				newRGB.r = 0xFFFF0000;
-				newRGB.g = 0xFF00FF00;
-				newRGB.b = 0xFF0000FF;
+				timeNotMoving += elapsed;
+				if(timeNotMoving > 2) FlxG.mouse.visible = false;
 			}
-			
-			globalRgbShaders[noteData] = newRGB;
-		}
-		return globalRgbShaders[noteData];
-	}
 
-	var _lastNoteOffX:Float = 0;
-	static var _lastValidChecked:String; //optimization
-	public var originalHeight:Float = 6;
-	public var correctionOffset:Float = 0; //dont mess with this
-	public function reloadNote(texture:String = '', postfix:String = '') {
-		if(texture == null) texture = '';
-		if(postfix == null) postfix = '';
-
-		var skin:String = texture + postfix;
-		if(texture.length < 1)
-		{
-			skin = PlayState.SONG != null ? PlayState.SONG.arrowSkin : null;
-			if(skin == null || skin.length < 1)
-				skin = defaultNoteSkin + postfix;
-		}
-		else rgbShader.enabled = false;
-
-		var animName:String = null;
-		if(animation.curAnim != null) {
-			animName = animation.curAnim.name;
-		}
-
-		var skinPixel:String = skin;
-		var lastScaleY:Float = scale.y;
-		var skinPostfix:String = getNoteSkinPostfix();
-		var customSkin:String = skin + skinPostfix;
-		var path:String = PlayState.isPixelStage ? 'pixelUI/' : '';
-		if(customSkin == _lastValidChecked || Paths.fileExists('images/' + path + customSkin + '.png', IMAGE))
-		{
-			skin = customSkin;
-			_lastValidChecked = customSkin;
-		}
-		else skinPostfix = '';
-
-		if(PlayState.isPixelStage) {
-			if(isSustainNote) {
-				var graphic = Paths.image('pixelUI/' + skinPixel + 'ENDS' + skinPostfix);
-				loadGraphic(graphic, true, Math.floor(graphic.width / 4), Math.floor(graphic.height / 2));
-				originalHeight = graphic.height / 2;
-			} else {
-				var graphic = Paths.image('pixelUI/' + skinPixel + skinPostfix);
-				loadGraphic(graphic, true, Math.floor(graphic.width / 4), Math.floor(graphic.height / 5));
-			}
-			setGraphicSize(Std.int(width * PlayState.daPixelZoom));
-			loadPixelNoteAnims();
-			antialiasing = false;
-
-			if(isSustainNote) {
-				offsetX += _lastNoteOffX;
-				_lastNoteOffX = (width - 7) * (PlayState.daPixelZoom / 2);
-				offsetX -= _lastNoteOffX;
-			}
-		} else {
-			frames = Paths.getSparrowAtlas(skin);
-			loadNoteAnims();
-			if(!isSustainNote)
+			switch(curColumn)
 			{
-				centerOffsets();
-				centerOrigin();
+				case CENTER:
+					if(controls.UI_LEFT_P && leftOption != null)
+					{
+						curColumn = LEFT;
+						changeItem();
+					}
+					else if(controls.UI_RIGHT_P && rightOption != null)
+					{
+						curColumn = RIGHT;
+						changeItem();
+					}
+
+				case LEFT:
+					if(controls.UI_RIGHT_P)
+					{
+						curColumn = CENTER;
+						changeItem();
+					}
+
+				case RIGHT:
+					if(controls.UI_LEFT_P)
+					{
+						curColumn = CENTER;
+						changeItem();
+					}
 			}
+
+			if (controls.BACK)
+			{
+				selectedSomethin = true;
+				FlxG.mouse.visible = false;
+				FlxG.sound.play(Paths.sound('cancelMenu'));
+				MusicBeatState.switchState(new TitleState());
+			}
+
+			if (controls.ACCEPT || (FlxG.mouse.justPressed && allowMouse))
+			{
+				FlxG.sound.play(Paths.sound('confirmMenu'));
+				if (optionShit[curSelected] != 'donate')
+				{
+					selectedSomethin = true;
+					FlxG.mouse.visible = false;
+
+					if (ClientPrefs.data.flashing)
+						FlxFlicker.flicker(magenta, 1.1, 0.15, false);
+
+					var item:FlxSprite;
+					var option:String;
+					switch(curColumn)
+					{
+						case CENTER:
+							option = optionShit[curSelected];
+							item = menuItems.members[curSelected];
+
+						case LEFT:
+							option = leftOption;
+							item = leftItem;
+
+						case RIGHT:
+							option = rightOption;
+							item = rightItem;
+					}
+
+					FlxFlicker.flicker(item, 1, 0.06, false, false, function(flick:FlxFlicker)
+					{
+						switch (option)
+						{
+							case 'story_mode':
+								MusicBeatState.switchState(new StoryMenuState());
+							case 'freeplay':
+								MusicBeatState.switchState(new FreeplayState());
+
+							#if MODS_ALLOWED
+							case 'mods':
+								MusicBeatState.switchState(new ModsMenuState());
+							#end
+
+							#if ACHIEVEMENTS_ALLOWED
+							case 'achievements':
+								MusicBeatState.switchState(new AchievementsMenuState());
+							#end
+
+							case 'credits':
+								MusicBeatState.switchState(new CreditsState());
+							case 'options':
+								MusicBeatState.switchState(new OptionsState());
+								OptionsState.onPlayState = false;
+								if (PlayState.SONG != null)
+								{
+									PlayState.SONG.arrowSkin = null;
+									PlayState.SONG.splashSkin = null;
+									PlayState.stageUI = 'normal';
+								}
+						}
+					});
+					
+					for (memb in menuItems)
+					{
+						if(memb == item)
+							continue;
+
+						FlxTween.tween(memb, {alpha: 0}, 0.4, {ease: FlxEase.quadOut});
+					}
+				}
+				else
+					CoolUtil.browserLoad('https://sites.google.com/view/fnf-vs-paopun20-donate/main');
+			}
+			#if desktop
+			if (controls.justPressed('debug_1'))
+			{
+				selectedSomethin = true;
+				FlxG.mouse.visible = false;
+				MusicBeatState.switchState(new MasterEditorMenu());
+			}
+			#end
 		}
 
-		if(isSustainNote) {
-			scale.y = lastScaleY;
-		}
-		updateHitbox();
-
-		if(animName != null)
-			animation.play(animName, true);
-	}
-
-	public static function getNoteSkinPostfix()
-	{
-		var skin:String = '';
-		if(ClientPrefs.data.noteSkin != ClientPrefs.defaultData.noteSkin)
-			skin = '-' + ClientPrefs.data.noteSkin.trim().toLowerCase().replace(' ', '_');
-		return skin;
-	}
-
-	function loadNoteAnims() {
-		if (colArray[noteData] == null)
-			return;
-
-		if (isSustainNote)
-		{
-			attemptToAddAnimationByPrefix('purpleholdend', 'pruple end hold', 24, true); // this fixes some retarded typo from the original note .FLA
-			animation.addByPrefix(colArray[noteData] + 'holdend', colArray[noteData] + ' hold end', 24, true);
-			animation.addByPrefix(colArray[noteData] + 'hold', colArray[noteData] + ' hold piece', 24, true);
-		}
-		else animation.addByPrefix(colArray[noteData] + 'Scroll', colArray[noteData] + '0');
-
-		setGraphicSize(Std.int(width * 0.7));
-		updateHitbox();
-	}
-
-	function loadPixelNoteAnims() {
-		if (colArray[noteData] == null)
-			return;
-
-		if(isSustainNote)
-		{
-			animation.add(colArray[noteData] + 'holdend', [noteData + 4], 24, true);
-			animation.add(colArray[noteData] + 'hold', [noteData], 24, true);
-		} else animation.add(colArray[noteData] + 'Scroll', [noteData + 4], 24, true);
-	}
-
-	function attemptToAddAnimationByPrefix(name:String, prefix:String, framerate:Float = 24, doLoop:Bool = true)
-	{
-		var animFrames = [];
-		@:privateAccess
-		animation.findByPrefix(animFrames, prefix); // adds valid frames to animFrames
-		if(animFrames.length < 1) return;
-
-		animation.addByPrefix(name, prefix, framerate, doLoop);
-	}
-
-	override function update(elapsed:Float)
-	{
 		super.update(elapsed);
-
-		if (mustPress)
-		{
-			canBeHit = (strumTime > Conductor.songPosition - (Conductor.safeZoneOffset * lateHitMult) &&
-						strumTime < Conductor.songPosition + (Conductor.safeZoneOffset * earlyHitMult));
-
-			if (strumTime < Conductor.songPosition - Conductor.safeZoneOffset && !wasGoodHit)
-				tooLate = true;
-		}
-		else
-		{
-			canBeHit = false;
-
-			if (!wasGoodHit && strumTime <= Conductor.songPosition)
-			{
-				if(!isSustainNote || (prevNote.wasGoodHit && !ignoreNote))
-					wasGoodHit = true;
-			}
-		}
-
-		if (tooLate && !inEditor)
-		{
-			if (alpha > 0.3)
-				alpha = 0.3;
-		}
 	}
 
-	override public function destroy()
+	function changeItem(change:Int = 0)
 	{
-		super.destroy();
-		_lastValidChecked = '';
-	}
+		if(change != 0) curColumn = CENTER;
+		curSelected = FlxMath.wrap(curSelected + change, 0, optionShit.length - 1);
+		FlxG.sound.play(Paths.sound('scrollMenu'));
 
-	public function followStrumNote(myStrum:StrumNote, fakeCrochet:Float, songSpeed:Float = 1)
-	{
-		var strumX:Float = myStrum.x;
-		var strumY:Float = myStrum.y;
-		var strumAngle:Float = myStrum.angle;
-		var strumAlpha:Float = myStrum.alpha;
-		var strumDirection:Float = myStrum.direction;
-
-		distance = (0.45 * (Conductor.songPosition - strumTime) * songSpeed * multSpeed);
-		if (!myStrum.downScroll) distance *= -1;
-
-		var angleDir = strumDirection * Math.PI / 180;
-		if (copyAngle)
-			angle = strumDirection - 90 + strumAngle + offsetAngle;
-
-		if(copyAlpha)
-			alpha = strumAlpha * multAlpha;
-
-		if(copyX)
-			x = strumX + offsetX + Math.cos(angleDir) * distance;
-
-		if(copyY)
+		for (item in menuItems)
 		{
-			y = strumY + offsetY + correctionOffset + Math.sin(angleDir) * distance;
-			if(myStrum.downScroll && isSustainNote)
-			{
-				if(PlayState.isPixelStage)
-				{
-					y -= PlayState.daPixelZoom * 9.5;
-				}
-				y -= (frameHeight * scale.y) - (Note.swagWidth / 2);
-			}
+			item.animation.play('idle');
+			item.centerOffsets();
 		}
-	}
 
-	public function clipToStrumNote(myStrum:StrumNote)
-	{
-		var center:Float = myStrum.y + offsetY + Note.swagWidth / 2;
-		if((mustPress || !ignoreNote) && (wasGoodHit || (prevNote.wasGoodHit && !canBeHit)))
+		var selectedItem:FlxSprite;
+		switch(curColumn)
 		{
-			var swagRect:FlxRect = clipRect;
-			if(swagRect == null) swagRect = new FlxRect(0, 0, frameWidth, frameHeight);
-
-			if (myStrum.downScroll)
-			{
-				if(y - offset.y * scale.y + height >= center)
-				{
-					swagRect.width = frameWidth;
-					swagRect.height = (center - y) / scale.y;
-					swagRect.y = frameHeight - swagRect.height;
-				}
-			}
-			else if (y + offset.y * scale.y <= center)
-			{
-				swagRect.y = (center - y) / scale.y;
-				swagRect.width = width / scale.x;
-				swagRect.height = (height / scale.y) - swagRect.y;
-			}
-			clipRect = swagRect;
+			case CENTER:
+				selectedItem = menuItems.members[curSelected];
+			case LEFT:
+				selectedItem = leftItem;
+			case RIGHT:
+				selectedItem = rightItem;
 		}
-	}
-
-	@:noCompletion
-	override function set_clipRect(rect:FlxRect):FlxRect
-	{
-		clipRect = rect;
-
-		if (frames != null)
-			frame = frames.frames[animation.frameIndex];
-
-		return rect;
+		selectedItem.animation.play('selected');
+		selectedItem.centerOffsets();
+		camFollow.y = selectedItem.getGraphicMidpoint().y;
 	}
 }
