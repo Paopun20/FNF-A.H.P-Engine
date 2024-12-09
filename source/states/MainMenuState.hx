@@ -15,7 +15,7 @@ enum MainMenuColumn {
 class MainMenuState extends MusicBeatState
 {
 	public static var psychEngineVersion:String = '1.0'; // This is also used for Discord RPC
-	public static var cyberEngineVersion:String = '0.0.1'; // This is also used for Discord RPC
+	public static var ahpEngineVersion:String = '0.0.1'; // This is also used for Discord RPC
 
 	public static var curSelected:Int = 0;
 	public static var curColumn:MainMenuColumn = CENTER;
@@ -96,7 +96,7 @@ class MainMenuState extends MusicBeatState
 			rightItem.x -= rightItem.width;
 		}
 
-		var ahpVer:FlxText = new FlxText(12, FlxG.height - 68, 0, "A.H.P Engine v" + cyberEngineVersion, 12);
+		var ahpVer:FlxText = new FlxText(12, FlxG.height - 68, 0, "A.H.P Engine v" + ahpEngineVersion, 12);
 		var psychVer:FlxText = new FlxText(12, FlxG.height - 44, 0, "Psych Engine v" + psychEngineVersion, 12);
 		var fnfVer:FlxText = new FlxText(12, FlxG.height - 24, 0, "Friday Night Funkin' v" + Application.current.meta.get('version'), 12);
 		psychVer.scrollFactor.set();
