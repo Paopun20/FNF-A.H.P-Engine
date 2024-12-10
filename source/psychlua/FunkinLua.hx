@@ -1564,7 +1564,7 @@ class FunkinLua {
 		#if DISCORD_ALLOWED DiscordClient.addLuaCallbacks(lua); #end
 		#if ACHIEVEMENTS_ALLOWED Achievements.addLuaCallbacks(lua); #end
 		#if TRANSLATIONS_ALLOWED Language.addLuaCallbacks(lua); #end
-		// Cyber Lua
+		//AHP Lua
 		#if LUA_EXTENSIONS_ALLOWED AHPLua.addLuaCallbacks(lua); #end
 		// Psych [DO NOT EDIT]
 		#if HSCRIPT_ALLOWED HScript.implement(this); #end
