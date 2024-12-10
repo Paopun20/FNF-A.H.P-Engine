@@ -11,3 +11,5 @@ Upgrade to a more powerful version of the Psych Engine now!
   - GetArgs
   - BrainF*ck
   - UrlGen
+- **BOTPLAY**
+  - 
