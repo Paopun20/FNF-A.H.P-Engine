@@ -12,4 +12,6 @@ Upgrade to a more powerful in the Psych Engine forked.
   - BrainF*ck
   - UrlGen
 - **BOTPLAY**
-  - 
+  - No Lag (not 100%)
+- ****
+   - __
