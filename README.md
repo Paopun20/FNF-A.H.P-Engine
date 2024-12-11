@@ -1,6 +1,6 @@
 # Friday Night Funkin' - A.H.P Engine (Advance Hyper Psych Engine)
 
-Upgrade to a more powerful in the Psych Engine fork.
+Upgrade to a more powerful in the Psych Engine forked.
 
 ## Additions to the Psych Engine:
 - **LUA Extensions:**
