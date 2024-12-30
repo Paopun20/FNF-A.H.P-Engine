@@ -287,7 +287,7 @@ class PlayState extends MusicBeatState
 		instakillOnMiss = ClientPrefs.getGameplaySetting('instakill');
 		practiceMode = ClientPrefs.getGameplaySetting('practice');
 		cpuControlled = ClientPrefs.getGameplaySetting('botplay');
-		optimize_botplay = ClientPrefs.getGameplaySetting('optimize_botplay');
+		optimize_botplay = ClientPrefs.getGameplaySetting('optimize_botplay') && cpuControlled;
 
 		guitarHeroSustains = ClientPrefs.data.guitarHeroSustains;
 
@@ -1136,13 +1136,13 @@ class PlayState extends MusicBeatState
 		var tempScore:String;
 		if (cpuControlled) {
 			if (!instakillOnMiss) {
-				tempScore = Language.getPhrase('score_text', 'Botplay Score: {1} | Botplay Misses: {2} | Botplay Rating: {3}', [
+				tempScore = Language.getPhrase('botplay_score_text', 'Botplay Score: {1} | Botplay Misses: {2} | Botplay Rating: {3}', [
 					Format.format(songScore),
 					Format.format(songMisses),
 					str
 				]);
 			} else {
-				tempScore = Language.getPhrase('score_text_instakill', 'Botplay Score: {1} | Botplay Rating: {2}', [
+				tempScore = Language.getPhrase('botplay_score_text_instakill', 'Botplay Score: {1} | Botplay Rating: {2}', [
 					Format.format(songScore),
 					str
 				]);
@@ -1178,8 +1178,7 @@ class PlayState extends MusicBeatState
 			if (bads > 0 || shits > 0) ratingFC = 'FC';
 			else if (goods > 0) ratingFC = 'GFC';
 			else if (sicks > 0) ratingFC = 'SFC';
-		}
-		else {
+		} else {
 			if (songMisses < 10) ratingFC = 'SDCB';
 			else ratingFC = 'Clear';
 		}
