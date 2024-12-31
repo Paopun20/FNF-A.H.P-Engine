@@ -56,7 +56,7 @@ class Main extends Sprite {
         initialState: CheckForUpdateState, // Initial game state
         zoom: -1.0,           // Game zoom
         framerate: 60,        // Default framerate
-        skipSplash: true,     // Skip flixel splash screen
+        skipSplash: false,     // Skip flixel splash screen
         startFullscreen: false // Start in fullscreen mode
     };
 
@@ -133,7 +133,18 @@ class Main extends Sprite {
         Achievements.load();
         #end
 
-        addChild(new FlxGame(game.width, game.height, game.initialState, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash, game.startFullscreen));
+        addChild(
+            new FlxGame(
+                game.width,
+                game.height,
+                game.initialState,
+                #if (flixel < "5.0.0") game.zoom, #end
+                game.framerate,
+                game.framerate,
+                game.skipSplash,
+                game.startFullscreen
+                )
+            );
 
         #if !mobile
         fpsVar = new FPSCounter(10, 3, 0xFFFFFF);
