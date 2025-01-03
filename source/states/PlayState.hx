@@ -2429,12 +2429,16 @@ class PlayState extends MusicBeatState
 			var percent:Float = ratingPercent;
 			if(Math.isNaN(percent)) percent = 0;
 
-			if (!practiceMode && !cpuControlled)
+			if (!practiceMode && !cpuControlled && !chartingMode)
 				{
 					trace("Highscore Saved:" + Song.loadedSongName, songScore, storyDifficulty, percent);
 					Highscore.saveScore(Song.loadedSongName, songScore, storyDifficulty, percent);
 				} else {
-					trace("Highscore: Not saved in botplay/practice mode.");
+					if (chartingMode) {
+						trace("Highscore: Not saved in Charting Mode.");
+					} else {
+						trace("Highscore: Not saved in botplay/practice mode.");
+					}
 				}
 			#end
 			playbackRate = 1;

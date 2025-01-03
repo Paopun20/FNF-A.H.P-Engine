@@ -21,3 +21,10 @@ An upgraded and more powerful version of the Psych Engine, designed for creating
 - `forceDadMiss`: Forces Dad to miss every time. Use with:
   ```lua
   setProperty('forceDadMiss', <BOOL>)
+  ```
+### Future:
+- Basic anti-cheat
+
+### Plan Future:
+- Advanced anti-cheat
+- Custom State With Lua

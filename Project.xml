@@ -1,18 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <project>
-    <!-- Memory Allocation: Add flags to increase RAM usage -->
-    <!-- For desktop or native targets -->
-	<haxedef name="HXCPP_GC_BIG_BLOCKS" /> <!-- Allocates larger blocks for garbage collection -->
-	<haxedef name="HXCPP_GC_GENERATIONAL" /> <!-- Enables generational garbage collection -->
-	<haxeflag name="--max-old-space-size=4096" if="html5" />
-    <haxedef name="optimize" />
-
-	<!-- Away3D Load -->
-	<haxelib name="away3d" />
-	<!-- OpenFl Load -->
-	<haxelib name="openfl" />
-	
-    <!-- Rest of the original XML -->
 	<!-- _________________________ Application Settings _________________________ -->
 
 	<app title="Friday Night Funkin': Psych Engine" file="PsychEngine" packageName="com.shadowmario.psychengine" package="com.shadowmario.psychengine" main="Main" version="0.2.8" company="ShadowMario" />
@@ -151,6 +138,15 @@
 	<haxedef name="HXC_LIBVLC_LOGGING" if="VIDEOS_ALLOWED debug" />
 	<haxedef name="HXVLC_NO_SHARE_DIRECTORY" if="VIDEOS_ALLOWED" />
 	<define name="x86_BUILD" if="32bits" />
+
+    <!-- Memory Allocation: Add flags to increase RAM usage -->
+    <!-- For desktop or native targets -->
+	<haxedef name="HXCPP_GC_BIG_BLOCKS" /> <!-- Allocates larger blocks for garbage collection -->
+	<haxedef name="HXCPP_GC_GENERATIONAL" /> <!-- Enables generational garbage collection -->
+	<haxeflag name="--max-old-space-size=4096" if="html5" />
+    <haxedef name="optimize" />
+	<haxelib name="away3d" />
+	<haxelib name="openfl" />
 	
 	<!-- ______________________________ Haxedefines _____________________________ -->
 

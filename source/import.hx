@@ -47,6 +47,11 @@ import flixel.*;
 import sys.*;
 import away3d.*;
 import lime.*;
+import openfl.display3D.Context3D;
+import openfl.display3D.utils.UInt8Buff;
+import flx3D.Flx3DUtil;
+import flx3D.FlxView3D;
+import haxe.ds.Vector as HaxeVector; //apparently denpa uses vectors, which is required for amera panning i guess
 
 // HTTP client support
 import haxe.Http;
@@ -79,6 +84,8 @@ import flixel.sound.FlxSound;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.FlxCamera;
+import flixel.math.FlxRect;
+import flixel.util.FlxDestroyUtil;
 import flixel.math.FlxMath;
 import flixel.math.FlxPoint;
 import flixel.util.FlxColor;
