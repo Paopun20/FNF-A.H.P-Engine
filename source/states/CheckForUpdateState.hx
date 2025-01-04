@@ -6,6 +6,7 @@ import ahptool.*;
 import flixel.*;
 import flixel.effects.*;
 import lime.*;
+import backend.Controls;
 
 class CheckForUpdateState extends MusicBeatState {
     private var statusText:FlxText;

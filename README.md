@@ -23,7 +23,7 @@ An upgraded and more powerful version of the Psych Engine, designed for creating
   setProperty('forceDadMiss', <BOOL>)
   ```
 ### Future:
-- Basic anti-cheat
+- Basic anti-cheat Beta
 
 ### Plan Future:
 - Advanced anti-cheat

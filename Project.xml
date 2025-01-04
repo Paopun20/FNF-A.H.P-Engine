@@ -138,13 +138,12 @@
 	<haxedef name="HXC_LIBVLC_LOGGING" if="VIDEOS_ALLOWED debug" />
 	<haxedef name="HXVLC_NO_SHARE_DIRECTORY" if="VIDEOS_ALLOWED" />
 	<define name="x86_BUILD" if="32bits" />
-
-    <!-- Memory Allocation: Add flags to increase RAM usage -->
     <!-- For desktop or native targets -->
-	<haxedef name="HXCPP_GC_BIG_BLOCKS" /> <!-- Allocates larger blocks for garbage collection -->
-	<haxedef name="HXCPP_GC_GENERATIONAL" /> <!-- Enables generational garbage collection -->
-	<haxeflag name="--max-old-space-size=4096" if="html5" />
-    <haxedef name="optimize" />
+	<haxedef name="HXCPP_GC_BIG_BLOCKS" />
+	<haxedef name="HXCPP_GC_DYNAMIC_SIZE" />
+	<haxedef name="HXCPP_GC_GENERATIONAL" />
+	<haxedef name="HXCPP_CPP11" />
+	
 	<haxelib name="away3d" />
 	<haxelib name="openfl" />
 	
